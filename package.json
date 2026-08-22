@@ -1,0 +1,14 @@
+{
+  "name": "omp-drip",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "catalog": "node tools/generate-catalog.mjs",
+    "package:client": "node tools/package.mjs",
+    "test": "node --test tools/tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

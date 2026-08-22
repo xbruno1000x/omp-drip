@@ -1,23 +1,106 @@
 # omp-drip
 
-An open.mp component for changing clothes by body part (torso, legs, arms, glasses, hats, etc.), like CJ's outfit system in GTA San Andreas.
+`omp-drip` is an open.mp component plus a SA-MP client plugin that synchronizes
+CJ-style clothing by body slot. A server can build a catalog from its own
+`player.img`, preview individual pieces, persist outfits in its gamemode and
+synchronize the resulting appearance to streamed players.
 
-## About
+The repository contains the reusable native layer. Shop menus, prices, payment,
+inventory ownership and database persistence intentionally remain in the
+consumer gamemode.
 
-**omp-drip** adds a body-part clothing customization system built on top of the clothes/props skin structure. It's designed for roleplay and freeroam servers that want to give players visual freedom without relying on full skin swaps.
+## Features
 
-## Installation
+- 18 GTA San Andreas clothing slots;
+- full appearance and single-item preview synchronization;
+- stable item IDs derived from slot, texture and model names;
+- catalog validation against a custom `player.img`;
+- optional detection of unchanged CJ models that may be incompatible with a replacement player model;
+- SHA-256 validation of the distributed client package;
+- duplicate-client and clothing-hook conflict detection;
+- Pawn natives and ready/rejected callbacks;
+- native protocol, catalog and hook-conflict tests.
 
+## Compatibility
+
+The current client implementation targets GTA San Andreas 1.0 US, SA-MP
+0.3.7-R3 and Windows x86 with an ASI loader and Mod Loader. The open.mp server
+component is also built as Windows x86.
+
+Supporting another game or SA-MP revision requires adding and validating a
+separate address/layout profile in `src/client/client.cpp`; do not reuse the
+current addresses blindly.
+
+## Prerequisites
+
+- Node.js 20 or newer;
+- CMake 3.19 or newer;
+- Visual Studio 2022 C++ build tools with the Win32 toolchain;
+- Git;
+- your legally obtained `player.img`, `clothes.dat` and `shopping.dat` files.
+
+No GTA assets are included in this repository.
+
+## 1. Generate a catalog for your player.img
+
+```powershell
+node tools/generate-catalog.mjs `
+  --player-img "C:\path\to\player.img" `
+  --clothes-dat "C:\path\to\clothes.dat" `
+  --shopping-dat "C:\path\to\shopping.dat" `
+  --overrides catalog-overrides.json `
+  --out build/catalog
 ```
-# TODO: add installation steps (e.g. via sampctl, manual include, etc.)
+
+This writes `build/catalog/omp-drip/catalog.bin`, a generated Pawn include and
+a source-hash seed. See [`docs/custom-player-img.md`](docs/custom-player-img.md)
+for compatibility and default-item configuration.
+
+## 2. Build the native binaries
+
+```powershell
+./scripts/bootstrap-native.ps1
+./scripts/build.ps1 -Configuration Release
 ```
 
-## Usage
+The outputs are `omp-drip.dll` (open.mp component) and `omp-drip.asi` (SA-MP
+client plugin) under the CMake configuration directory.
 
-```pawn
-// TODO: add basic usage example
+## 3. Package the client
+
+```powershell
+./scripts/package-client.ps1 `
+  -Asi "build/native/Release/omp-drip.asi" `
+  -PlayerImg "C:\path\to\player.img" `
+  -ClothesDat "C:\path\to\clothes.dat" `
+  -ShoppingDat "C:\path\to\shopping.dat" `
+  -Version "1.0.0"
 ```
 
-## License
+The packager creates `dist/omp-drip-client` and regenerates
+`src/generated/manifest.hpp`. Rebuild the server component afterward so it
+embeds the package hashes. Without a generated manifest the component runs in
+development mode and does not require the handshake.
 
-// TODO: add license
+## 4. Integrate with a gamemode
+
+1. Copy `omp-drip.dll` to the open.mp `components` directory.
+2. Install `include/omp-drip.inc` and the generated catalog include.
+3. Implement ownership, persistence and shop logic using the API.
+4. Distribute the complete generated client package to every player.
+
+Start with [`examples/basic.pwn`](examples/basic.pwn) and
+[`docs/api.md`](docs/api.md).
+
+## Tests
+
+```powershell
+npm test
+./scripts/build.ps1 -Configuration Release
+```
+
+## Security model
+
+The handshake verifies exact SHA-256 hashes for the ASI, `player.img`, data
+files and binary catalog. This prevents accidental mixed versions and common
+package modifications; it is not a general-purpose anti-cheat.

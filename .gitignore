@@ -1,0 +1,14 @@
+/.deps/
+/build/
+/dist/
+/.vs/
+/.vscode/
+*.user
+*.suo
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.asi
+*.zip

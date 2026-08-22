@@ -1,0 +1,17 @@
+{
+  "tshirtwhite": {
+    "name": "White T-shirt",
+    "category": "Torso",
+    "price": 120,
+    "enabled": true
+  },
+  "incompatible_item": {
+    "enabled": false
+  },
+  "$defaults": {
+    "0": "player_torso",
+    "1": "player_face",
+    "2": "player_legs",
+    "3": "foot"
+  }
+}
