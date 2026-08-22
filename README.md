@@ -1,2 +1,1 @@
-# omp-drip
-An open.mp component for changing clothes by body part (torso, legs, etc.), like CJ's outfit system in GTA San Andreas.
+omp-drip is an open.mp component that adds a body-part clothing customization system (torso, legs, arms, glasses, hats, etc.), built on top of the clothes/props skin structure exclusive to the CJ character in GTA San Andreas. Perfect for roleplay or freeroam servers that want to give players visual freedom without relying on full skin swaps.
