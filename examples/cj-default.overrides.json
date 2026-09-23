@@ -1,0 +1,12 @@
+{
+  "$defaults": {
+    "0": "vest",
+    "1": "player_face",
+    "2": "jeansdenim",
+    "3": "sneakerbincblk"
+  },
+  "vest": { "name": "Regata branca" },
+  "player_face": { "name": "Cabelo original do CJ" },
+  "jeansdenim": { "name": "Jeans azul" },
+  "sneakerbincblk": { "name": "Tenis preto" }
+}

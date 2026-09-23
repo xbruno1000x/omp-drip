@@ -1,0 +1,107 @@
+name: Create Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version without v (for example, 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-version:
+    name: Validate version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Validate release version
+        id: version
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
+            version="$INPUT_VERSION"
+          else
+            version="${REF_NAME#v}"
+          fi
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo '::error::Use a stable version in x.y.z format, without a leading v in manual runs.'
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build release
+    needs: validate-version
+    uses: ./.github/workflows/build-reusable.yml
+    with:
+      version: ${{ needs.validate-version.outputs.version }}
+
+  publish:
+    name: Publish GitHub Release
+    needs: [validate-version, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: ${{ needs.validate-version.outputs.tag }}
+    steps:
+      - name: Checkout the source used by the build
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download tested assets
+        uses: actions/download-artifact@v8
+        with:
+          name: omp-drip-windows-x86-${{ needs.validate-version.outputs.version }}
+          path: release-assets
+
+      - name: Verify asset checksums
+        working-directory: release-assets
+        run: sha256sum --check SHA256SUMS.txt
+
+      - name: Create release with tested assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            tagged_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+            if [[ "$tagged_commit" != "$commit" ]]; then
+              echo '::error::The release tag points to a different commit from the tested build.'
+              exit 1
+            fi
+          fi
+          if gh release view "$RELEASE_TAG" --json isDraft > release-state.json 2>/dev/null; then
+            if [[ "$(jq -r .isDraft release-state.json)" != true ]]; then
+              echo '::error::This release is already published. Use a new version.'
+              exit 1
+            fi
+          else
+            gh release create "$RELEASE_TAG" --target "$commit" \
+              --title "omp-drip $RELEASE_TAG" --draft --generate-notes \
+              --notes-file docs/release-notes.md
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

@@ -1,0 +1,66 @@
+name: Reusable - Build Windows x86
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version used in artifact names
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Component and client (Windows x86)
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Test catalog generator and client packager
+        run: npm test
+
+      - name: Check public build manifest
+        run: |
+          $manifest = Get-Content src/generated/manifest.hpp -Raw
+          if ($manifest -notmatch 'kConfigured\s*=\s*false\s*;') {
+            throw 'Public builds require the unconfigured manifest. Keep package-specific manifests out of releases.'
+          }
+
+      - name: Fetch native dependencies
+        run: ./scripts/bootstrap-native.ps1
+
+      - name: Build Release and run native tests
+        run: |
+          $buildArgs = @{ Configuration = 'Release' }
+          if ($env:RELEASE_VERSION -match '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+            $buildArgs.Version = $env:RELEASE_VERSION
+          }
+          ./scripts/build.ps1 @buildArgs
+
+      - name: Package and verify release assets
+        run: ./scripts/package-release.ps1 -Version $env:RELEASE_VERSION
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: omp-drip-windows-x86-${{ inputs.version }}
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 14

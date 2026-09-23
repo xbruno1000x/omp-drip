@@ -63,7 +63,9 @@ public:
     }
 
     StringView componentName() const override { return "omp-drip"; }
-    SemanticVersion componentVersion() const override { return SemanticVersion(1, 0, 0, 0); }
+    SemanticVersion componentVersion() const override {
+        return SemanticVersion(OMP_DRIP_VERSION_MAJOR, OMP_DRIP_VERSION_MINOR, OMP_DRIP_VERSION_PATCH, 0);
+    }
 
     void onLoad(ICore* core) override {
         core_ = core;

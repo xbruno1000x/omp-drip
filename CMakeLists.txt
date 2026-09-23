@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
-project(omp-drip LANGUAGES C CXX VERSION 1.0.0)
+set(OMP_DRIP_VERSION "1.0.0" CACHE STRING "omp-drip release version")
+project(omp-drip LANGUAGES C CXX VERSION ${OMP_DRIP_VERSION})
 
 if(NOT WIN32 OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
     message(FATAL_ERROR "omp-drip currently targets Windows x86. Configure with -A Win32.")
@@ -33,6 +34,9 @@ target_include_directories(omp-drip-server PRIVATE
     "${OMP_DRIP_OPENMP_ROOT}/lib/pawn/source/linux"
 )
 target_compile_definitions(omp-drip-server PRIVATE
+    OMP_DRIP_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+    OMP_DRIP_VERSION_MINOR=${PROJECT_VERSION_MINOR}
+    OMP_DRIP_VERSION_PATCH=${PROJECT_VERSION_PATCH}
     HAVE_STDINT_H=1
     PAWN_CELL_SIZE=32
     WIN32_LEAN_AND_MEAN
@@ -77,6 +81,14 @@ target_include_directories(omp-drip-conflict-tests PRIVATE src/client)
 target_link_libraries(omp-drip-conflict-tests PRIVATE psapi)
 
 enable_testing()
+# These tests use assert(); keep their checks enabled in Release builds too.
+foreach(test_target omp-drip-protocol-tests omp-drip-catalog-tests omp-drip-conflict-tests)
+    if(MSVC)
+        target_compile_options(${test_target} PRIVATE /UNDEBUG)
+    else()
+        target_compile_options(${test_target} PRIVATE -UNDEBUG)
+    endif()
+endforeach()
 add_test(NAME protocol COMMAND omp-drip-protocol-tests)
 add_test(NAME catalog COMMAND omp-drip-catalog-tests)
 add_test(NAME conflict COMMAND omp-drip-conflict-tests)

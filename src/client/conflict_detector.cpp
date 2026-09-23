@@ -64,8 +64,11 @@ const void* detourDestination(const std::uint8_t* code) {
 } // namespace
 
 HANDLE claimBuildOwnership(bool& duplicate) {
+    // Duplicate ASIs matter within one game process, not across separate games
+    // or test processes running in the same Windows session.
+    const auto name = std::wstring(kOwnershipName) + L"-" + std::to_wstring(GetCurrentProcessId());
     SetLastError(ERROR_SUCCESS);
-    HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, 1, kOwnershipName);
+    HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, 1, name.c_str());
     duplicate = mapping && GetLastError() == ERROR_ALREADY_EXISTS;
     return mapping;
 }

@@ -13,7 +13,14 @@ void knownTarget() {}
 
 } // namespace
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2 && std::strcmp(argv[1], "--claim") == 0) {
+        bool duplicate = true;
+        HANDLE ownership = drip::client::claimBuildOwnership(duplicate);
+        const bool valid = ownership && !duplicate;
+        if (ownership) CloseHandle(ownership);
+        return valid ? 0 : 1;
+    }
     bool firstDuplicate = true;
     bool secondDuplicate = false;
     HANDLE first = drip::client::claimBuildOwnership(firstDuplicate);
@@ -21,6 +28,22 @@ int main() {
     assert(first && second);
     assert(!firstDuplicate);
     assert(secondDuplicate);
+
+    // A second process may claim ownership while this one holds both handles.
+    wchar_t executable[MAX_PATH]{};
+    assert(GetModuleFileNameW(nullptr, executable, MAX_PATH));
+    std::wstring command = L"\"" + std::wstring(executable) + L"\" --claim";
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    PROCESS_INFORMATION process{};
+    assert(CreateProcessW(executable, command.data(), nullptr, nullptr, FALSE,
+        CREATE_NO_WINDOW, nullptr, nullptr, &startup, &process));
+    assert(WaitForSingleObject(process.hProcess, 10000) == WAIT_OBJECT_0);
+    DWORD exitCode = 1;
+    assert(GetExitCodeProcess(process.hProcess, &exitCode));
+    assert(exitCode == 0);
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
 
     std::array<std::uint8_t, 16> code{};
     code.fill(0x90);

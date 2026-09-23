@@ -92,6 +92,24 @@ development mode and does not require the handshake.
 Start with [`examples/basic.pwn`](examples/basic.pwn) and
 [`docs/api.md`](docs/api.md).
 
+For a standalone CJ demo with spawn, clothing menus, private previews and
+confirmation commands, see [`examples/cj-default.pwn`](examples/cj-default.pwn)
+and the [setup instructions in Portuguese](examples/README.md). Generate its
+catalog with `scripts/prepare-cj-example.ps1` using your GTA data files.
+An [English script and setup guide](examples/README.en.md) are also available;
+pass `-Language en` to the preparation script to compile that version.
+
+## CI and releases
+
+GitHub Actions builds and tests Windows x86 on pushes to `main` and pull
+requests. Download the binaries from the workflow artifacts, or publish a
+version through **Actions > Create Release** with a version such as `1.0.0`.
+Pushing a tag such as `v1.0.0` also builds and publishes a release.
+
+Releases include the component DLL, client ASI, Pawn include, installation ZIPs
+and SHA-256 checksums. GTA files and generated catalogs are not included.
+See [the release guide](docs/releases.md) for setup and manifest requirements.
+
 ## Tests
 
 ```powershell
