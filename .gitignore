@@ -3,6 +3,11 @@
 /dist/
 /.vs/
 /.vscode/
+/dependencies/
+/.sampctl/
+/pawn.lock
+/sampctl_build_file.inc
+/omp-server.exe
 *.user
 *.suo
 *.pdb

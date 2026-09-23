@@ -84,6 +84,20 @@ development mode and does not require the handshake.
 
 ## 4. Integrate with a gamemode
 
+For an open.mp gamemode managed by sampctl 1.14.1+, set `"preset": "openmp"`
+in its `pawn.json` and install the Windows x86 component and includes:
+
+```powershell
+sampctl install component://xbruno1000x/omp-drip@main
+sampctl ensure
+```
+
+Use `@main` until a release newer than `v1.0.0` includes the new package
+manifest. See [the sampctl guide](docs/sampctl.md) for version pinning,
+catalog setup and a consumer `pawn.json` example.
+
+For manual installation:
+
 1. Copy `omp-drip.dll` to the open.mp `components` directory.
 2. Install `include/omp-drip.inc` and the generated catalog include.
 3. Implement ownership, persistence and shop logic using the API.

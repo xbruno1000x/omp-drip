@@ -1,0 +1,28 @@
+{
+  "user": "xbruno1000x",
+  "repo": "omp-drip",
+  "website": "https://github.com/xbruno1000x/omp-drip",
+  "preset": "openmp",
+  "include_path": "include",
+  "entry": "tests/pawn-api.pwn",
+  "output": "build/pawn-api.amx",
+  "build": {
+    "includes": ["include"]
+  },
+  "dev_dependencies": [
+    "openmultiplayer/omp-stdlib"
+  ],
+  "resources": [
+    {
+      "name": "^omp-drip-server-v[0-9]+\\.[0-9]+\\.[0-9]+-windows-x86\\.zip$",
+      "platform": "windows",
+      "archive": true,
+      "plugins": [
+        "components/omp-drip.dll"
+      ]
+    }
+  ],
+  "experimental": {
+    "build_file": false
+  }
+}

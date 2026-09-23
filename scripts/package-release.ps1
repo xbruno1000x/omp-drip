@@ -95,6 +95,7 @@ try {
     Copy-Required (Join-Path $projectRoot "README.md") (Join-Path $serverStage "README.md")
     Copy-Required (Join-Path $projectRoot "docs/api.md") (Join-Path $serverStage "docs/api.md")
     Copy-Required (Join-Path $projectRoot "docs/releases.md") (Join-Path $serverStage "docs/releases.md")
+    Copy-Required (Join-Path $projectRoot "docs/sampctl.md") (Join-Path $serverStage "docs/sampctl.md")
 
     Write-Utf8File (Join-Path $serverStage "INSTALL.txt") @"
 OMP-DRIP SERVER $Version
@@ -127,6 +128,20 @@ client, even when the server uses the unconfigured development manifest.
 
 $serverZip = Join-Path $outputRoot "omp-drip-server-v$Version-windows-x86.zip"
 $clientZip = Join-Path $outputRoot "omp-drip-client-v$Version-windows-x86.zip"
+if (-not $Version.StartsWith('dev-')) {
+    $package = Get-Content -LiteralPath (Join-Path $projectRoot 'pawn.json') -Raw | ConvertFrom-Json
+    $matchingResources = @($package.resources | Where-Object {
+        $_.platform -eq 'windows' -and [System.IO.Path]::GetFileName($serverZip) -match $_.name
+    })
+    if ($matchingResources.Count -ne 1 -or -not $matchingResources[0].archive) {
+        throw 'The server ZIP must match exactly one sampctl archive resource.'
+    }
+    foreach ($plugin in $matchingResources[0].plugins) {
+        if (-not (Test-Path -LiteralPath (Join-Path $serverStage $plugin) -PathType Leaf)) {
+            throw "sampctl resource is missing from the server archive: $plugin"
+        }
+    }
+}
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($serverStage, $serverZip,
     [System.IO.Compression.CompressionLevel]::Optimal, $false)

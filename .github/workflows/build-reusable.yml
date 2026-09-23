@@ -36,6 +36,31 @@ jobs:
       - name: Test catalog generator and client packager
         run: npm test
 
+      - name: Check Pawn package with sampctl
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SAMPCTL_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $toolDir = Join-Path $env:RUNNER_TEMP 'sampctl'
+          New-Item -ItemType Directory -Force -Path $toolDir | Out-Null
+          $archive = 'sampctl_1.14.1_windows_amd64.tar.gz'
+          gh release download 1.14.1 --repo Southclaws/sampctl --dir $toolDir `
+            --pattern $archive --pattern 'sampctl_1.14.1_checksums.txt'
+          if ($LASTEXITCODE -ne 0) { throw 'sampctl download failed' }
+          $checksumLine = Get-Content (Join-Path $toolDir 'sampctl_1.14.1_checksums.txt') |
+            Where-Object { ($_ -split '\s+')[-1] -eq $archive }
+          if (-not $checksumLine) { throw 'Missing sampctl checksum' }
+          $expected = ($checksumLine -split '\s+')[0]
+          if ((Get-FileHash (Join-Path $toolDir $archive) -Algorithm SHA256).Hash -ne $expected) {
+            throw 'sampctl checksum mismatch'
+          }
+          tar -xzf (Join-Path $toolDir $archive) -C $toolDir
+          if ($LASTEXITCODE -ne 0) { throw 'sampctl extraction failed' }
+          & (Join-Path $toolDir 'sampctl.exe') ensure
+          if ($LASTEXITCODE -ne 0) { throw 'sampctl ensure failed' }
+          & (Join-Path $toolDir 'sampctl.exe') build
+          if ($LASTEXITCODE -ne 0) { throw 'sampctl build failed' }
+
       - name: Check public build manifest
         run: |
           $manifest = Get-Content src/generated/manifest.hpp -Raw
