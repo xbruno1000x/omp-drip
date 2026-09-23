@@ -5,6 +5,20 @@ and set `"preset": "openmp"` in your gamemode's `pawn.json`.
 
 ## Install the component and includes
 
+For a private repository, first authenticate with a GitHub account that has
+access. If GitHub CLI is already signed in (`gh auth login`), set both API and
+Git credentials in the current PowerShell session before installing:
+
+```powershell
+$env:SAMPCTL_GITHUB_TOKEN = (gh auth token)
+if ($LASTEXITCODE -ne 0) { throw 'GitHub authentication unavailable' }
+$env:SAMPCTL_GIT_USERNAME = 'x-access-token'
+$env:SAMPCTL_GIT_PASSWORD = $env:SAMPCTL_GITHUB_TOKEN
+```
+
+These variables are session-local; do not put tokens in `pawn.json` or commit
+them. See sampctl's [authentication settings](https://github.com/Southclaws/sampctl/blob/master/docs/global-config.md).
+
 From your gamemode directory:
 
 ```powershell
