@@ -101,7 +101,7 @@ jobs:
           else
             gh release create "$RELEASE_TAG" --target "$commit" \
               --title "omp-drip $RELEASE_TAG" --draft --generate-notes \
-              --notes-file docs/release-notes.md
+              --notes-file .github/release-notes.md
           fi
           gh release upload "$RELEASE_TAG" release-assets/* --clobber
           gh release edit "$RELEASE_TAG" --draft=false

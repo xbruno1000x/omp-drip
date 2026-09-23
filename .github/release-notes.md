@@ -6,7 +6,7 @@ Windows x86 binaries for the open.mp component and SA-MP 0.3.7-R3 client.
 
 GTA assets, a generated catalog and a package-specific manifest are not included.
 Generate a catalog from your own `player.img`, `clothes.dat` and `shopping.dat`
-and package it with the ASI as described in the repository README.
+and package it with the ASI as described in the [project Wiki](https://github.com/xbruno1000x/omp-drip/wiki).
 
 The public component uses the unconfigured manifest (development mode).
 To require exact client package hashes, generate your client package and then

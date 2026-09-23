@@ -9,6 +9,8 @@ The repository contains the reusable native layer. Shop menus, prices, payment,
 inventory ownership and database persistence intentionally remain in the
 consumer gamemode.
 
+Documentation is maintained in the [project Wiki](https://github.com/xbruno1000x/omp-drip/wiki).
+
 ## Features
 
 - 18 GTA San Andreas clothing slots;
@@ -53,7 +55,7 @@ node tools/generate-catalog.mjs `
 ```
 
 This writes `build/catalog/omp-drip/catalog.bin`, a generated Pawn include and
-a source-hash seed. See [`docs/custom-player-img.md`](docs/custom-player-img.md)
+a source-hash seed. See [the custom player.img guide](https://github.com/xbruno1000x/omp-drip/wiki/Custom-player.img)
 for compatibility and default-item configuration.
 
 ## 2. Build the native binaries
@@ -93,7 +95,7 @@ sampctl ensure
 ```
 
 Use `@main` until a release newer than `v1.0.0` includes the new package
-manifest. See [the sampctl guide](docs/sampctl.md) for version pinning,
+manifest. See [the sampctl guide](https://github.com/xbruno1000x/omp-drip/wiki/Installing-with-sampctl) for version pinning,
 catalog setup and a consumer `pawn.json` example.
 
 For manual installation:
@@ -104,7 +106,7 @@ For manual installation:
 4. Distribute the complete generated client package to every player.
 
 Start with [`examples/basic.pwn`](examples/basic.pwn) and
-[`docs/api.md`](docs/api.md).
+[the Pawn API reference](https://github.com/xbruno1000x/omp-drip/wiki/Pawn-API).
 
 For a standalone CJ demo with spawn, clothing menus, private previews and
 confirmation commands, see [`examples/cj-default.pwn`](examples/cj-default.pwn)
@@ -122,7 +124,7 @@ Pushing a tag such as `v1.0.0` also builds and publishes a release.
 
 Releases include the component DLL, client ASI, Pawn include, installation ZIPs
 and SHA-256 checksums. GTA files and generated catalogs are not included.
-See [the release guide](docs/releases.md) for setup and manifest requirements.
+See [the release guide](https://github.com/xbruno1000x/omp-drip/wiki/Builds-and-releases) for setup and manifest requirements.
 
 ## Tests
 

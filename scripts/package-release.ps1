@@ -69,9 +69,7 @@ $minHookLicense = Join-Path $projectRoot ".deps/minhook/LICENSE.txt"
 Assert-WindowsX86Pe $componentPath
 Assert-WindowsX86Pe $clientPath
 foreach ($requiredPath in @($serverInclude, $catalogInclude, $minHookLicense,
-        (Join-Path $projectRoot "README.md"),
-        (Join-Path $projectRoot "docs/api.md"),
-        (Join-Path $projectRoot "docs/releases.md"))) {
+        (Join-Path $projectRoot "README.md"))) {
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
         throw "Required release source is missing: $requiredPath"
     }
@@ -93,9 +91,6 @@ try {
     Copy-Required $serverInclude (Join-Path $serverStage "include/omp-drip.inc")
     Copy-Required $catalogInclude (Join-Path $serverStage "include/omp-drip-catalog.inc")
     Copy-Required (Join-Path $projectRoot "README.md") (Join-Path $serverStage "README.md")
-    Copy-Required (Join-Path $projectRoot "docs/api.md") (Join-Path $serverStage "docs/api.md")
-    Copy-Required (Join-Path $projectRoot "docs/releases.md") (Join-Path $serverStage "docs/releases.md")
-    Copy-Required (Join-Path $projectRoot "docs/sampctl.md") (Join-Path $serverStage "docs/sampctl.md")
 
     Write-Utf8File (Join-Path $serverStage "INSTALL.txt") @"
 OMP-DRIP SERVER $Version
@@ -108,6 +103,10 @@ This public binary uses the unconfigured development manifest. GTA assets, gener
 catalogs and package-specific manifests are intentionally not included. For enforced
 client hashes, generate the client package and rebuild the server component with its
 generated manifest before deployment.
+
+Documentation: https://github.com/xbruno1000x/omp-drip/wiki
+Pawn API: https://github.com/xbruno1000x/omp-drip/wiki/Pawn-API
+sampctl: https://github.com/xbruno1000x/omp-drip/wiki/Installing-with-sampctl
 "@
 
 Copy-Required $clientPath (Join-Path $clientStage "omp-drip.asi")
@@ -124,6 +123,8 @@ OMP-DRIP CLIENT $Version
 This release contains the generic client plugin only. It does not include GTA assets,
 catalog.bin or manifest.json. Generate and install a complete package before using the
 client, even when the server uses the unconfigured development manifest.
+
+Documentation: https://github.com/xbruno1000x/omp-drip/wiki
 "@
 
 $serverZip = Join-Path $outputRoot "omp-drip-server-v$Version-windows-x86.zip"
