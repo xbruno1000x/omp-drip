@@ -68,12 +68,14 @@ function parseShopping(text) {
   const hasSections = /^\s*section\s+/imu.test(text);
   const clothingSections = new Set(["clothes", "haircuts", "tattoos"]);
   let active = !hasSections;
+  let activeSection = "";
   for (const original of text.split(/\r?\n/u)) {
     const line = stripComment(original);
     if (!line) continue;
     const section = /^section\s+(\S+)/iu.exec(line);
     if (section) {
-      active = clothingSections.has(section[1].toLowerCase());
+      activeSection = section[1].toLowerCase();
+      active = clothingSections.has(activeSection);
       continue;
     }
     if (/^end\b/iu.test(line)) {
@@ -83,11 +85,17 @@ function parseShopping(text) {
     if (!active || /^(prices|shops|store|type)\b/iu.test(line)) continue;
     const tokens = line.split(/[\t ]+/u);
     if (tokens.length < 5) continue;
-    const slot = Number.parseInt(tokens[3], 10);
+    // Tattoo records have texture, GXT key, body slot and an auxiliary field,
+    // rather than the texture, GXT key, model and slot used by clothing.
+    const tattoo = activeSection === "tattoos";
+    const slot = Number(tattoo ? tokens[2] : tokens[3]);
+    if (tattoo && (!Number.isInteger(slot) || slot < 4 || slot > 12)) {
+      throw new Error(`Invalid tattoo slot: ${tokens[2]} (expected 4..12)`);
+    }
     if (!Number.isInteger(slot) || slot < 0 || slot >= 18) continue;
     const texture = tokens[0].toLowerCase();
-    const model = tokens[2].toLowerCase();
-    if (!/^[a-z0-9_]+$/iu.test(texture) || !/^[a-z0-9_]+$/iu.test(model)) continue;
+    const model = tattoo ? "" : tokens[2].toLowerCase();
+    if (!/^[a-z0-9_]+$/iu.test(texture) || (!tattoo && !/^[a-z0-9_]+$/iu.test(model))) continue;
     const numeric = tokens.map((token) => Number.parseInt(token, 10)).filter(Number.isFinite);
     items.push({ texture, model, slot, gxt: tokens[1], price: Math.max(0, numeric.at(-1) ?? 0) });
   }
@@ -101,8 +109,10 @@ const pawnId = (value) => `0x${value.toString(16).padStart(8, "0")}`;
 function makeBinary(items) {
   const chunks = [];
   const header = Buffer.alloc(10);
-  header.write("HCAT", 0, "ascii"); // Kept for binary compatibility with protocol v1 clients.
-  header.writeUInt16LE(1, 4);
+  header.write("HCAT", 0, "ascii");
+  // Format 2 adds texture-only tattoo records. Clothing-only catalogs retain
+  // format 1 so existing clients can still consume them.
+  header.writeUInt16LE(items.some((item) => item.model === "") ? 2 : 1, 4);
   header.writeUInt32LE(items.length, 6);
   chunks.push(header);
   for (const item of items) {
@@ -121,6 +131,11 @@ function makeBinary(items) {
 
 function makePawnInclude(items, version, defaults) {
   const lines = [
+    "#if defined _omp_drip_catalog_included",
+    "    #endinput",
+    "#endif",
+    "#define _omp_drip_catalog_included",
+    "",
     `#define DRIP_CATALOG_VERSION \"${version}\"`,
     `#define DRIP_CATALOG_COUNT (${items.length})`,
     "#define DRIP_ITEM_NAME_MAX (48)",
@@ -168,7 +183,7 @@ const overrides = overridesPath ? JSON.parse(await readFile(overridesPath, "utf8
 const seenIds = new Map();
 const items = parseShopping(shoppingDat.toString("latin1")).map((item) => {
   if (!imgEntries.has(`${item.texture}.txd`)) throw new Error(`Missing texture in player.img: ${item.texture}.txd`);
-  if (!imgEntries.has(`${item.model}.dff`)) throw new Error(`Missing model in player.img: ${item.model}.dff`);
+  if (item.model && !imgEntries.has(`${item.model}.dff`)) throw new Error(`Missing model in player.img: ${item.model}.dff`);
   const id = stableId(item.slot, item.texture, item.model);
   if (seenIds.has(id)) throw new Error(`ID collision: ${seenIds.get(id)} and ${item.texture}/${item.model}`);
   seenIds.set(id, `${item.texture}/${item.model}`);
@@ -194,12 +209,16 @@ for (let slot = 0; slot < defaults.length; slot++) {
   defaults[slot] = found?.id ?? 0;
 }
 
-const version = sha256(Buffer.concat([playerImg, clothesDat, shoppingDat])).slice(0, 16);
 const catalog = makeBinary(items);
+// Include generated data so parser changes, overrides and defaults also
+// produce a distinct version even when the GTA source files are unchanged.
+const version = sha256(Buffer.concat([playerImg, clothesDat, shoppingDat, catalog,
+  Buffer.from(JSON.stringify({ items, defaults }), "utf8")])).slice(0, 16);
 const seed = {
   schema: 1,
   protocol: 1,
   catalogVersion: version,
+  catalogFormat: catalog.readUInt16LE(4),
   files: {
     "models/player.img": sha256(playerImg),
     "data/clothes.dat": sha256(clothesDat),

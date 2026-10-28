@@ -11,6 +11,7 @@ native Drip_IsClientReady(playerid);
 // Applies the complete appearance and synchronizes it with streamed players.
 // item_ids must contain one catalog ID per GTA clothing slot. Use 0 to clear
 // optional slots. muscle and fat use GTA's 0..1000 range.
+// Slots 4..12 hold tattoos. Use 0 to remove the tattoo in that body region.
 native Drip_SetPlayerAppearance(playerid, const item_ids[DRIP_SLOT_COUNT], muscle, fat);
 
 // Applies one temporary item only to the owning player's client.

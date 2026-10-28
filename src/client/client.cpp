@@ -5,6 +5,7 @@
 #include <NetworkTypes.h>
 
 #include "catalog.hpp"
+#include "package_paths.hpp"
 #include "conflict_detector.hpp"
 #include "file_hash.hpp"
 #include "protocol.hpp"
@@ -272,7 +273,7 @@ bool applyState(const drip::protocol::AppearanceState& state, bool force) {
         if (itemId == 0) continue;
         const auto* item = g_catalog.find(itemId);
         if (!item || item->slot != slot) continue;
-        g_originalSetTexture(clothes, 0, item->texture.c_str(), item->model.c_str(), item->slot);
+        g_originalSetTexture(clothes, 0, item->texture.c_str(), item->modelName(), item->slot);
     }
     clothes->muscle = static_cast<float>(std::min<std::uint16_t>(state.muscle, 1000));
     clothes->fat = static_cast<float>(std::min<std::uint16_t>(state.fat, 1000));
@@ -391,13 +392,14 @@ void __cdecl hookGameProcess() {
 
 bool hashPackage(std::string& error) {
     const auto root = gameRoot();
+    const auto assetRoot = drip::client::packageAssetRoot(root);
     wchar_t ownModule[MAX_PATH]{};
     GetModuleFileNameW(g_module, ownModule, static_cast<DWORD>(std::size(ownModule)));
     const std::array<std::filesystem::path, drip::protocol::kFileCount> paths = {
         std::filesystem::path(ownModule),
-        root / L"modloader" / L"omp-drip" / L"models" / L"player.img",
-        root / L"modloader" / L"omp-drip" / L"data" / L"clothes.dat",
-        root / L"modloader" / L"omp-drip" / L"data" / L"shopping.dat",
+        assetRoot / L"models" / L"player.img",
+        assetRoot / L"data" / L"clothes.dat",
+        assetRoot / L"data" / L"shopping.dat",
         root / L"omp-drip" / L"catalog.bin",
     };
     for (std::size_t index = 0; index < paths.size(); ++index) {

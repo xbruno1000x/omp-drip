@@ -12,6 +12,7 @@ int main() {
     input.revision = 77;
     input.items[0] = 0x12345678U;
     input.items[17] = 0xFFFFFFFFU;
+    for (std::size_t slot = 4; slot <= 12; ++slot) input.items[slot] = static_cast<std::uint32_t>(100 + slot);
     input.muscle = 999;
     input.fat = 123;
 
@@ -30,6 +31,16 @@ int main() {
     assert(output.items == input.items);
     assert(output.muscle == input.muscle);
     assert(output.fat == input.fat);
+
+    // Tattoos use the same appearance state for previews and removal.
+    for (const auto stateOpcode : {Opcode::Preview, Opcode::StateUpdate}) {
+        input.items[4] = stateOpcode == Opcode::Preview ? 104U : 0U;
+        auto tattooPacket = makeStatePacket(stateOpcode, input);
+        Reader tattooReader(tattooPacket.data(), tattooPacket.size(), true);
+        assert(tattooReader.readHeader(opcode) && opcode == stateOpcode);
+        assert(readState(tattooReader, output));
+        assert(output.items == input.items);
+    }
 
     packet.pop_back();
     Reader truncated(packet.data(), packet.size(), true);

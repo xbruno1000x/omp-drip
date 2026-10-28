@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory)][string]$PlayerImg,
     [Parameter(Mandatory)][string]$ClothesDat,
     [Parameter(Mandatory)][string]$ShoppingDat,
-    [string]$Catalog = "build/catalog/omp-drip/catalog.bin",
+    [string]$Catalog = "catalog/default/catalog.bin",
     [string]$Output = "dist/omp-drip-client",
     [string]$Version = "dev"
 )

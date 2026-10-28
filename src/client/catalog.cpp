@@ -35,7 +35,7 @@ bool Catalog::load(const std::wstring& path, std::string& error) {
     std::uint16_t version = 0;
     std::uint32_t count = 0;
     if (!stream.read(magic, sizeof(magic)) || std::string(magic, sizeof(magic)) != "HCAT"
-        || !readLittle(stream, version) || version != 1 || !readLittle(stream, count)
+        || !readLittle(stream, version) || (version != 1 && version != 2) || !readLittle(stream, count)
         || count == 0 || count > 100'000) {
         error = "cabecalho de catalogo invalido";
         return false;
@@ -48,7 +48,8 @@ bool Catalog::load(const std::wstring& path, std::string& error) {
         std::uint8_t flags = 0;
         if (!readLittle(stream, item.id) || !readLittle(stream, item.slot)
             || !readLittle(stream, textureLength) || !readLittle(stream, modelLength)
-            || !readLittle(stream, flags) || flags != 0 || item.slot >= 18 || textureLength == 0 || modelLength == 0
+            || !readLittle(stream, flags) || flags != 0 || item.slot >= 18 || textureLength == 0
+            || (modelLength == 0 && (version != 2 || item.slot < 4 || item.slot > 12))
             || textureLength > 31 || modelLength > 31) {
             error = "registro de catalogo invalido";
             items_.clear();

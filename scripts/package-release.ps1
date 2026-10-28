@@ -64,15 +64,37 @@ $componentPath = Join-Path $buildRoot "$Configuration/omp-drip.dll"
 $clientPath = Join-Path $buildRoot "$Configuration/omp-drip.asi"
 $serverInclude = Join-Path $projectRoot "include/omp-drip.inc"
 $catalogInclude = Join-Path $projectRoot "include/omp-drip-catalog.inc"
+$catalogPath = Join-Path $projectRoot "catalog/default/catalog.bin"
+$catalogSeedPath = Join-Path $projectRoot "catalog/default/catalog.seed.json"
 $minHookLicense = Join-Path $projectRoot ".deps/minhook/LICENSE.txt"
 
 Assert-WindowsX86Pe $componentPath
 Assert-WindowsX86Pe $clientPath
-foreach ($requiredPath in @($serverInclude, $catalogInclude, $minHookLicense,
+foreach ($requiredPath in @($serverInclude, $catalogInclude, $catalogPath, $catalogSeedPath, $minHookLicense,
         (Join-Path $projectRoot "README.md"))) {
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
         throw "Required release source is missing: $requiredPath"
     }
+}
+
+$seed = Get-Content -LiteralPath $catalogSeedPath -Raw | ConvertFrom-Json
+$catalogHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $catalogPath).Hash.ToLowerInvariant()
+if ($seed.schema -ne 1 -or $seed.protocol -ne 1 -or $catalogHash -ne $seed.files.'omp-drip/catalog.bin') {
+    throw "Default catalog does not match its seed. Regenerate it before packaging."
+}
+foreach ($asset in @('models/player.img', 'data/clothes.dat', 'data/shopping.dat')) {
+    if ($seed.files.$asset -notmatch '^[0-9a-f]{64}$') { throw "Missing default asset hash: $asset" }
+}
+$catalogBytes = [System.IO.File]::ReadAllBytes($catalogPath)
+if ($catalogBytes.Length -lt 10 -or [System.Text.Encoding]::ASCII.GetString($catalogBytes, 0, 4) -ne 'HCAT' `
+        -or [System.BitConverter]::ToUInt16($catalogBytes, 4) -notin @(1, 2)) {
+    throw "Invalid default catalog header."
+}
+$catalogCount = [System.BitConverter]::ToUInt32($catalogBytes, 6)
+$includeText = Get-Content -LiteralPath $catalogInclude -Raw
+if ($catalogCount -eq 0 -or $includeText -notmatch ('#define DRIP_CATALOG_COUNT \(' + $catalogCount + '\)') `
+        -or -not $includeText.Contains('#define DRIP_CATALOG_VERSION "' + $seed.catalogVersion + '"')) {
+    throw "Default Pawn include does not match the catalog. Regenerate it before packaging."
 }
 
 if (Test-Path -LiteralPath $outputRoot) {
@@ -82,10 +104,11 @@ if (Test-Path -LiteralPath $outputRoot) {
 $stageRoot = Join-Path $projectRoot ("build/package-stage/" + $Version + "-" + [guid]::NewGuid().ToString("N"))
 $serverStage = Join-Path $stageRoot "server"
 $clientStage = Join-Path $stageRoot "client"
+$catalogStage = Join-Path $stageRoot "catalog"
 $releaseFiles = @()
 
 try {
-    New-Item -ItemType Directory -Force -Path $serverStage, $clientStage, $outputRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $serverStage, $clientStage, $catalogStage, $outputRoot | Out-Null
 
     Copy-Required $componentPath (Join-Path $serverStage "components/omp-drip.dll")
     Copy-Required $serverInclude (Join-Path $serverStage "include/omp-drip.inc")
@@ -97,12 +120,13 @@ OMP-DRIP SERVER $Version
 
 1. Copy components/omp-drip.dll into the components directory of your open.mp server.
 2. Copy both files from include/ into the include directory used by your Pawn compiler.
-3. Include <omp-drip> and replace the catalog placeholder with a catalog generated for your own GTA assets.
+3. Include <omp-drip> and <omp-drip-catalog> to use the bundled vanilla CJ catalog ($catalogCount items).
+4. Distribute the matching client ZIP. For custom assets, generate an alternative catalog and
+   replace the Pawn catalog include and the client's omp-drip/catalog.bin together.
 
-This public binary uses the unconfigured development manifest. GTA assets, generated
-catalogs and package-specific manifests are intentionally not included. For enforced
-client hashes, generate the client package and rebuild the server component with its
-generated manifest before deployment.
+This public binary uses the unconfigured development manifest. GTA assets are not included.
+For enforced client hashes, generate the client package and rebuild the server component
+with its generated manifest before deployment.
 
 Documentation: https://github.com/xbruno1000x/omp-drip/wiki
 Pawn API: https://github.com/xbruno1000x/omp-drip/wiki/Pawn-API
@@ -110,25 +134,50 @@ sampctl: https://github.com/xbruno1000x/omp-drip/wiki/Installing-with-sampctl
 "@
 
 Copy-Required $clientPath (Join-Path $clientStage "omp-drip.asi")
+Copy-Required $catalogPath (Join-Path $clientStage "omp-drip/catalog.bin")
+Copy-Required $catalogSeedPath (Join-Path $clientStage "omp-drip/catalog.seed.json")
 Copy-Required $minHookLicense (Join-Path $clientStage "LICENSES/MinHook.txt")
+$clientManifest = [ordered]@{
+    schema = 1
+    protocol = 1
+    version = $Version
+    files = [ordered]@{
+        'omp-drip.asi' = (Get-FileHash -Algorithm SHA256 -LiteralPath $clientPath).Hash.ToLowerInvariant()
+        'models/player.img' = $seed.files.'models/player.img'
+        'data/clothes.dat' = $seed.files.'data/clothes.dat'
+        'data/shopping.dat' = $seed.files.'data/shopping.dat'
+        'omp-drip/catalog.bin' = $catalogHash
+    }
+}
+Write-Utf8File (Join-Path $clientStage "omp-drip/manifest.json") (($clientManifest | ConvertTo-Json -Depth 4) + "`n")
 Write-Utf8File (Join-Path $clientStage "INSTALL.txt") @"
 OMP-DRIP CLIENT $Version
 
-1. Copy omp-drip.asi into the root of a supported GTA San Andreas installation.
-2. Use an ASI loader and Mod Loader, then install a package generated from your own player.img,
-   clothes.dat, shopping.dat and catalog.bin files.
-3. Keep the package files together. The client and server must use matching generated hashes
-   when the server is built with a configured manifest.
+1. Extract this ZIP into the root of a supported vanilla GTA San Andreas installation,
+   preserving the omp-drip/ directory. Use an ASI loader.
+2. The bundled catalog uses the original CJ assets in models/player.img, data/clothes.dat
+   and data/shopping.dat. Their reference hashes are in omp-drip/catalog.seed.json.
+3. Remove any previous custom modloader/omp-drip package before using the vanilla catalog.
+   Other installed clothing replacements must also match the chosen catalog.
+4. For custom assets, generate an alternative catalog and use scripts/package-client.ps1
+   with -Catalog. Custom packages use Mod Loader and take precedence over vanilla assets.
 
-This release contains the generic client plugin only. It does not include GTA assets,
-catalog.bin or manifest.json. Generate and install a complete package before using the
-client, even when the server uses the unconfigured development manifest.
+This release includes the ASI, the default catalog and a client manifest. GTA assets are
+read from the user's installation and are not included. The public server component uses
+the unconfigured development manifest; rebuild it with a generated package manifest to
+enforce exact client hashes.
 
 Documentation: https://github.com/xbruno1000x/omp-drip/wiki
 "@
 
 $serverZip = Join-Path $outputRoot "omp-drip-server-v$Version-windows-x86.zip"
 $clientZip = Join-Path $outputRoot "omp-drip-client-v$Version-windows-x86.zip"
+$catalogZip = Join-Path $outputRoot "omp-drip-catalog-v$Version.zip"
+Copy-Required $catalogInclude (Join-Path $catalogStage "include/omp-drip-catalog.inc")
+Copy-Required $catalogPath (Join-Path $catalogStage "omp-drip/catalog.bin")
+Copy-Required $catalogSeedPath (Join-Path $catalogStage "omp-drip/catalog.seed.json")
+Copy-Required (Join-Path $projectRoot "catalog/default/README.md") (Join-Path $catalogStage "README.md")
+Copy-Required (Join-Path $projectRoot "catalog/default/overrides.json") (Join-Path $catalogStage "overrides.json")
 if (-not $Version.StartsWith('dev-')) {
     $package = Get-Content -LiteralPath (Join-Path $projectRoot 'pawn.json') -Raw | ConvertFrom-Json
     $matchingResources = @($package.resources | Where-Object {
@@ -148,6 +197,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.CompressionLevel]::Optimal, $false)
 [System.IO.Compression.ZipFile]::CreateFromDirectory($clientStage, $clientZip,
     [System.IO.Compression.CompressionLevel]::Optimal, $false)
+[System.IO.Compression.ZipFile]::CreateFromDirectory($catalogStage, $catalogZip,
+    [System.IO.Compression.CompressionLevel]::Optimal, $false)
 
 $componentAsset = Join-Path $outputRoot "omp-drip-v$Version-windows-x86.dll"
 $clientAsset = Join-Path $outputRoot "omp-drip-v$Version-windows-x86.asi"
@@ -161,6 +212,7 @@ Copy-Required $minHookLicense $licenseAsset
 $releaseFiles = @(
     $serverZip,
     $clientZip,
+    $catalogZip,
     $componentAsset,
     $clientAsset,
     $includeAsset,

@@ -1,0 +1,8 @@
+{
+  "$defaults": {
+    "0": "vest",
+    "1": "player_face",
+    "2": "jeansdenim",
+    "3": "sneakerbincblk"
+  }
+}

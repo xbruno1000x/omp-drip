@@ -46,11 +46,19 @@ requires the matching omp-drip client package. See the repository
 | `/resync` | Leave the fitting room and request streamed appearances again. |
 
 Categories include torso, hair, legs, shoes, necklaces, watches, glasses,
-hats and special outfits. Each page contains up to eight items plus navigation
+hats and special outfits. The **Tattoos** submenu adds nine body regions
+(slots 4..12), covering all 48 vanilla tattoos in the 339-item catalog.
+The camera moves to the side or back for arm and back tattoos. Tattoos support
+private previews, confirmation and removal; **Restore default / remove** uses
+item ID 0 for those regions in the default catalog. Clothes may cover tattoos;
+select `player_torso` under Torso to inspect torso tattoos.
+Each page contains up to eight items plus navigation
 and the default/remove action, within the native menu's twelve-row limit.
 Selecting an item opens a private preview with **Confirm outfit**,
 **Try another item** and **Cancel and leave** options.
 
 Confirmed outfits survive respawns but reset on reconnect. The demo does not
-charge money or persist outfits to a database. The current generator does not
-import tattoos from the original `shopping.dat` format.
+charge money or persist outfits to a database. Tattoo catalogs require the
+updated ASI (binary format 2); the network protocol and Pawn natives are unchanged.
+In-game checks should cover tattoo previews, cancel, confirmation, removal,
+respawn and streaming with two clients, including arm and back camera positions.

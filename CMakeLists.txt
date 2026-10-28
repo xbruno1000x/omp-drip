@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.19)
-set(OMP_DRIP_VERSION "1.0.0" CACHE STRING "omp-drip release version")
+set(OMP_DRIP_VERSION "1.1.0" CACHE STRING "omp-drip release version")
 project(omp-drip LANGUAGES C CXX VERSION ${OMP_DRIP_VERSION})
 
 if(NOT WIN32 OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -80,9 +80,12 @@ add_executable(omp-drip-conflict-tests tests/conflict_tests.cpp src/client/confl
 target_include_directories(omp-drip-conflict-tests PRIVATE src/client)
 target_link_libraries(omp-drip-conflict-tests PRIVATE psapi)
 
+add_executable(omp-drip-package-tests tests/package_paths_tests.cpp)
+target_include_directories(omp-drip-package-tests PRIVATE src/client)
+
 enable_testing()
 # These tests use assert(); keep their checks enabled in Release builds too.
-foreach(test_target omp-drip-protocol-tests omp-drip-catalog-tests omp-drip-conflict-tests)
+foreach(test_target omp-drip-protocol-tests omp-drip-catalog-tests omp-drip-conflict-tests omp-drip-package-tests)
     if(MSVC)
         target_compile_options(${test_target} PRIVATE /UNDEBUG)
     else()
@@ -92,3 +95,4 @@ endforeach()
 add_test(NAME protocol COMMAND omp-drip-protocol-tests)
 add_test(NAME catalog COMMAND omp-drip-catalog-tests)
 add_test(NAME conflict COMMAND omp-drip-conflict-tests)
+add_test(NAME package COMMAND omp-drip-package-tests)

@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "protocol": 1,
+  "catalogVersion": "9856bbdb6a9b7a19",
+  "catalogFormat": 2,
+  "files": {
+    "models/player.img": "bd6d43c065fd7767958c5c363e67fdaa92f203d7c766419524d9f220eec98256",
+    "data/clothes.dat": "5fff15c81a5f8c32f4d3dff22ad6748c9b8c0a45af7b9f67e22fb2b9ae05c593",
+    "data/shopping.dat": "93e640e29049ee9985185b7aaf1b2f3d11f8540ff8791a751632d6ba90d0bd4d",
+    "omp-drip/catalog.bin": "86ccd6d824e70563455fe15f0ef3d2cc5f9336dd42e96c980faa9b3f98758b1e"
+  }
+}

@@ -23,13 +23,16 @@
 #define ROW_PREVIOUS    (-2)
 #define ROW_NEXT        (-3)
 #define ROW_BACK        (-4)
+#define CLOTHING_CATEGORIES (9)
 
-// Clothing and haircut categories available in the original catalog.
-static const gSlots[] = {0, 1, 2, 3, 13, 14, 15, 16, 17};
+// The nine tattoo categories use their own submenu.
+static const gSlots[] = {0, 1, 2, 3, 13, 14, 15, 16, 17, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 static const gSlotNames[][] =
 {
     "Torso", "Hair", "Legs", "Shoes", "Necklaces",
-    "Watches", "Glasses", "Hats", "Special outfits"
+    "Watches", "Glasses", "Hats", "Special outfits",
+    "Left upper arm", "Left forearm", "Right upper arm", "Right forearm",
+    "Upper back", "Left chest", "Right chest", "Stomach", "Lower back"
 };
 
 static gAppearance[MAX_PLAYERS][DRIP_SLOT_COUNT];
@@ -38,6 +41,7 @@ static gCategory[MAX_PLAYERS];
 static gPage[MAX_PLAYERS];
 // Shared menus; each player stores only their current category/page.
 static Menu:gSlotsMenu = INVALID_MENU;
+static Menu:gTattoosMenu = INVALID_MENU;
 static Menu:gPreviewMenu = INVALID_MENU;
 static bool:gMenusReady;
 static Menu:gItemMenus[sizeof gSlots][MAX_ITEM_PAGES];
@@ -78,6 +82,7 @@ public OnGameModeExit()
         EndFitting(playerid);
     }
     if (gSlotsMenu != INVALID_MENU) DestroyMenu(gSlotsMenu);
+    if (gTattoosMenu != INVALID_MENU) DestroyMenu(gTattoosMenu);
     if (gPreviewMenu != INVALID_MENU) DestroyMenu(gPreviewMenu);
     for (new category = 0; category < sizeof gSlots; category++)
         for (new page = 0; page < gPageCount[category]; page++)
@@ -209,14 +214,23 @@ public OnPlayerSelectedMenuRow(playerid, row)
 
     if (menu == gSlotsMenu)
     {
-        if (row == sizeof gSlots)
+        if (row == CLOTHING_CATEGORIES) return ShowClothingMenu(playerid, gTattoosMenu);
+        if (row == CLOTHING_CATEGORIES + 1)
         {
             CancelPreview(playerid);
             EndFitting(playerid);
             return 1;
         }
-        if (row < 0 || row >= sizeof gSlots) return 1;
+        if (row < 0 || row >= CLOTHING_CATEGORIES) return 1;
         gCategory[playerid] = row;
+        gPage[playerid] = 0;
+        return ShowItems(playerid);
+    }
+    if (menu == gTattoosMenu)
+    {
+        if (row == sizeof gSlots - CLOTHING_CATEGORIES) return ShowSlots(playerid);
+        if (row < 0 || row >= sizeof gSlots - CLOTHING_CATEGORIES) return 1;
+        gCategory[playerid] = CLOTHING_CATEGORIES + row;
         gPage[playerid] = 0;
         return ShowItems(playerid);
     }
@@ -242,7 +256,11 @@ public OnPlayerSelectedMenuRow(playerid, row)
     if (row < 0 || row >= gRowCount[menu]) return 1;
 
     new index = gRows[menu][row];
-    if (index == ROW_BACK) return ShowSlots(playerid);
+    if (index == ROW_BACK)
+    {
+        if (gCategory[playerid] >= CLOTHING_CATEGORIES) return ShowClothingMenu(playerid, gTattoosMenu);
+        return ShowSlots(playerid);
+    }
     if (index == ROW_PREVIOUS)
     {
         if (gPage[playerid] > 0) gPage[playerid]--;
@@ -323,11 +341,21 @@ stock CancelPreview(playerid)
 
 stock ShowSlots(playerid)
 {
+    SetFrontCamera(playerid, FITTING_X, FITTING_Y, FITTING_Z, FITTING_ANGLE);
     return ShowClothingMenu(playerid, gSlotsMenu);
 }
 
 stock ShowItems(playerid)
 {
+    // Show the selected body region without rotating CJ.
+    new Float:cameraAngle = FITTING_ANGLE;
+    switch (gSlots[gCategory[playerid]])
+    {
+        case 4, 5: cameraAngle += 90.0;
+        case 6, 7: cameraAngle -= 90.0;
+        case 8, 12: cameraAngle += 180.0;
+    }
+    SetFrontCamera(playerid, FITTING_X, FITTING_Y, FITTING_Z, cameraAngle);
     return ShowClothingMenu(playerid, gItemMenus[gCategory[playerid]][gPage[playerid]]);
 }
 
@@ -348,11 +376,16 @@ stock AddClothingRow(Menu:menu, const label[], action)
 stock CreateClothingMenus()
 {
     gSlotsMenu = CreateMenu("Didier Sachs", 1, 20.0, 130.0, 190.0);
+    gTattoosMenu = CreateMenu("Tattoos", 1, 20.0, 130.0, 190.0);
     gPreviewMenu = CreateMenu("Try on clothes", 1, 20.0, 130.0, 190.0);
-    if (gSlotsMenu == INVALID_MENU || gPreviewMenu == INVALID_MENU) return 0;
-    for (new category = 0; category < sizeof gSlots; category++)
+    if (gSlotsMenu == INVALID_MENU || gTattoosMenu == INVALID_MENU || gPreviewMenu == INVALID_MENU) return 0;
+    for (new category = 0; category < CLOTHING_CATEGORIES; category++)
         AddMenuItem(gSlotsMenu, 0, gSlotNames[category]);
+    AddMenuItem(gSlotsMenu, 0, "Tattoos");
     AddMenuItem(gSlotsMenu, 0, "Leave fitting room");
+    for (new category = CLOTHING_CATEGORIES; category < sizeof gSlots; category++)
+        AddMenuItem(gTattoosMenu, 0, gSlotNames[category]);
+    AddMenuItem(gTattoosMenu, 0, "Back to categories");
     AddMenuItem(gPreviewMenu, 0, "Confirm outfit");
     AddMenuItem(gPreviewMenu, 0, "Try another item");
     AddMenuItem(gPreviewMenu, 0, "Cancel and leave");

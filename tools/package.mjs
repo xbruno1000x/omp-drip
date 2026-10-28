@@ -16,7 +16,8 @@ const asi = required("--asi");
 const playerImg = required("--player-img");
 const clothesDat = required("--clothes-dat");
 const shoppingDat = required("--shopping-dat");
-const catalog = required("--catalog");
+const defaultCatalog = path.resolve("catalog/default/catalog.bin");
+const catalog = path.resolve(args.get("--catalog") ?? defaultCatalog);
 const output = path.resolve(args.get("--out") ?? "dist/omp-drip-client");
 const generatedHeader = path.resolve(args.get("--manifest-header") ?? "src/generated/manifest.hpp");
 const version = args.get("--version") ?? new Date().toISOString().slice(0, 10).replaceAll("-", ".");
@@ -24,6 +25,15 @@ const version = args.get("--version") ?? new Date().toISOString().slice(0, 10).r
 const hashFile = async (file) => createHash("sha256").update(await readFile(file)).digest("hex");
 const sources = [asi, playerImg, clothesDat, shoppingDat, catalog];
 const hashes = await Promise.all(sources.map(hashFile));
+if (path.relative(defaultCatalog, catalog) === "") {
+  const seed = JSON.parse(await readFile(path.join(path.dirname(defaultCatalog), "catalog.seed.json"), "utf8"));
+  const files = ["models/player.img", "data/clothes.dat", "data/shopping.dat", "omp-drip/catalog.bin"];
+  for (let index = 0; index < files.length; index++) {
+    if (seed.files?.[files[index]] !== hashes[index + 1]) {
+      throw new Error(`Default catalog source mismatch: ${files[index]}. Use the matching vanilla files or generate an alternative catalog and pass --catalog.`);
+    }
+  }
+}
 const manifest = {
   schema: 1,
   protocol: 1,

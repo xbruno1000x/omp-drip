@@ -11,6 +11,9 @@ struct CatalogItem {
     std::uint8_t slot = 0;
     std::string texture;
     std::string model;
+
+    // GTA tattoo slots use only a texture, with no model dependency.
+    const char* modelName() const { return model.empty() ? nullptr : model.c_str(); }
 };
 
 class Catalog final {

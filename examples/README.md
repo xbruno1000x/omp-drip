@@ -46,8 +46,9 @@ open.mp/Pawn. Por exemplo, nesta maquina:
 Se os includes padrao do Pawn estiverem em outra pasta, acrescente-a a
 `-PawnInclude`. Ao compilar por outra ferramenta, coloque
 `build/cj-default/generated` antes de `include` nos caminhos de busca.
-O `include/omp-drip-catalog.inc` do repositorio e um placeholder; o exemplo
-recusa compilar com ele.
+O `include/omp-drip-catalog.inc` do repositorio contem o catalogo vanilla
+padrao. O catalogo gerado para o exemplo usa os mesmos IDs e tambem aplica
+os nomes configurados em `cj-default.overrides.json`.
 
 Resultados:
 
@@ -108,10 +109,14 @@ do menu nativo. Cada pagina tem no maximo 12 linhas, incluindo navegacao.
 Os menus sao criados uma vez e compartilhados; categoria, pagina e previa
 permanecem individuais para cada jogador.
 
-Os arquivos fornecidos geraram 291 itens de roupas e cabelos. Este exemplo
+Os arquivos fornecidos geraram 339 itens, incluindo 48 tatuagens. Este exemplo
 mostra torso, cabelo, pernas, calcados, colares, relogios, oculos, chapeus e
-trajes especiais. O gerador atual nao importa o formato de tatuagens do
-`shopping.dat` original; por isso elas nao aparecem no menu. Precos nao sao
+trajes especiais. A opcao "Tatuagens" abre um submenu com nove regioes do corpo
+(slots 4..12). A camera vai para o lado ou para tras nas regioes dos bracos e
+costas. Cada regiao permite experimentar, confirmar e remover sua tatuagem;
+"Restaurar padrao / remover" usa ID zero no catalogo padrao. Roupas podem cobrir
+as tatuagens: para testar o tronco, escolha `player_torso` na categoria Torso.
+O catalogo com tatuagens exige o ASI atualizado (formato binario 2). Precos nao sao
 cobrados e o exemplo nao implementa inventario ou banco de dados.
 
 ## Verificacao no jogo
@@ -122,6 +127,9 @@ cobrados e o exemplo nao implementa inventario ou banco de dados.
 - Escolha uma peca em `/roupas`; outro jogador deve continuar vendo a roupa
   anterior ate `/confirmar`. Confira tambem navegacao entre paginas.
 - Teste `/cancelar`, confirmar uma peca ja equipada e remover um acessorio.
+- Em "Tatuagens", teste uma regiao dos bracos, peito e costas, a camera de cada
+  regiao e "Voltar as categorias". Confirme e remova uma tatuagem com dois clientes;
+  cancele uma previa e confira que a tatuagem confirmada e preservada.
 - Morra durante uma previa: ao renascer, o visual deve ser o ultimo confirmado.
 - Teste `/cj`, `/resync` e sair/voltar do alcance de streaming com dois clientes.
 

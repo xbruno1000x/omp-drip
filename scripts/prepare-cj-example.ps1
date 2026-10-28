@@ -30,7 +30,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "CJ catalog generation failed" }
 
     if ($compilerPath) {
-        # O catalogo gerado deve preceder o placeholder de include/.
+        # O catalogo do exemplo deve preceder o catalogo padrao de include/.
         $compilerArgs = @(
             "examples/$exampleName.pwn",
             "-i$outputRoot/generated",

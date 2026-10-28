@@ -1,7 +1,8 @@
-// Compile-only API check. No GTA assets or generated catalog are required.
+// Compile-only API check using the bundled default catalog. No GTA assets required.
 #include <open.mp>
 #include <omp-drip>
 #include <omp-drip>
+#include <omp-drip-catalog>
 #include <omp-drip-catalog>
 
 main() {}
